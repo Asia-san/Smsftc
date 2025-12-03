@@ -1,0 +1,204 @@
+package org.firstinspires.ftc.teamcode.Match.Auto;
+
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.util.ElapsedTime;
+
+@Autonomous(name="Blue Alliance :D", group="Match", preselectTeleOp="TeleOpPreviewEvent")
+
+public class BlueAuton extends LinearOpMode {
+
+    DcMotor motorLeftFront, motorLeftBack, motorRightFront, motorRightBack;
+    private DcMotorEx motorIntake = null;
+    private DcMotorEx motorLauncherLeft = null; // Using DcMotorEx to get velocity
+    private DcMotorEx motorLauncherRight = null;
+    //private DcMotorEx motorLift = null;
+    static final double BANG_BANG_TARGET_VELOCITY = 1500.0; // Target speed in ticks per second
+
+    // Servos
+    private Servo servoHold = null;
+
+    String selectedAlliance = "blue";
+
+    int alliance = 1;  //blue alliance
+    //
+    //int alliance = -1; //red alliance
+
+
+
+    public void runOpMode() {
+        motorLeftFront = hardwareMap.get(DcMotorEx.class, "motorLeftFront");
+        motorLeftBack = hardwareMap.get(DcMotorEx.class, "motorLeftBack");
+        motorRightFront = hardwareMap.get(DcMotorEx.class, "motorRightFront");
+        motorRightBack = hardwareMap.get(DcMotorEx.class, "motorRightBack");
+
+        motorIntake     = hardwareMap.get(DcMotorEx.class, "motorIntake");
+        motorLauncherLeft = hardwareMap.get(DcMotorEx.class, "motorLauncherLeft"); // Mapped as DcMotorEx to read encoder
+        motorLauncherRight   = hardwareMap.get(DcMotorEx.class, "motorLauncherRight");
+        servoHold = hardwareMap.get(Servo.class, "servoHold");
+
+        motorLeftFront.setDirection(DcMotorEx.Direction.REVERSE);
+        motorLeftBack.setDirection(DcMotorEx.Direction.REVERSE);
+        motorRightFront.setDirection(DcMotorEx.Direction.FORWARD);
+        motorRightBack.setDirection(DcMotorEx.Direction.FORWARD);
+
+        motorLauncherRight.setDirection(DcMotorEx.Direction.REVERSE);
+        motorLauncherLeft.setDirection(DcMotorEx.Direction.FORWARD);
+        motorIntake.setDirection(DcMotorEx.Direction.FORWARD);
+
+        motorLeftFront.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+        motorRightFront.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+        motorLeftBack.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+        motorRightBack.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+
+       /*
+        int alliance = 1;
+
+        while(!opModeIsActive()) {
+            if(gamepad1.a) {
+                alliance = 1;
+            } else if (gamepad1.b){
+                alliance = -1;
+            }
+        }
+
+
+       */
+        telemetry.addData("Selected alliance", selectedAlliance);
+        telemetry.update();
+
+        waitForStart();
+        servoHold.setPosition(0.9);
+        motorLauncherLeft.setPower(-0.67);
+        motorLauncherRight.setPower(-0.67);
+        driveSleep(0.5, 1500);
+        fire();
+        telemetry.addData("fire complete","yes");
+        telemetry.update();
+        strafeSleep(0.5 * alliance, 800);
+        telemetry.addData("strafe complete","yes");
+        telemetry.update();
+    }
+
+
+    void strafeSleep(double power, int time) {
+        motorLeftFront.setPower(power);
+        motorRightFront.setPower(-power);
+        motorRightBack.setPower(power);
+        motorLeftBack.setPower(-power);
+
+        sleep(time);
+
+        motorLeftFront.setPower(0);
+        motorRightFront.setPower(0);
+        motorRightBack.setPower(0);
+        motorLeftBack.setPower(0);
+    }
+    void driveSleep(double power, int time) {
+        motorLeftFront.setPower(power);
+        motorRightFront.setPower(power);
+        motorRightBack.setPower(power);
+        motorLeftBack.setPower(power);
+
+        sleep(time);
+
+        motorLeftFront.setPower(0);
+        motorRightFront.setPower(0);
+        motorRightBack.setPower(0);
+        motorLeftBack.setPower(0);
+    }
+
+    void fire() {
+        ElapsedTime fireTimer = new ElapsedTime();
+        servoHold.setPosition(0.7);
+
+        while (fireTimer.seconds() < 5 && opModeIsActive()) {
+
+            motorLauncherLeft.setPower(-0.7);
+            motorLauncherRight.setPower(-0.7);
+
+            if (fireTimer.seconds() > 3) {
+                servoHold.setPosition(0.9);
+                motorIntake.setPower(1);
+            }
+        }
+
+        motorLauncherLeft.setPower(-0.0);
+        motorLauncherRight.setPower(-0.0);
+
+    }
+
+    void drive(int ticks, double power) {
+        setModes(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+
+        motorLeftBack.setTargetPosition(ticks);
+        motorRightBack.setTargetPosition(ticks);
+        motorRightFront.setTargetPosition(ticks);
+        motorLeftFront.setTargetPosition(ticks);
+
+        motorLeftFront.setPower(power);
+        motorRightFront.setPower(power);
+        motorRightBack.setPower(power);
+        motorLeftBack.setPower(power);
+
+        setModes(DcMotor.RunMode.RUN_TO_POSITION);
+
+        while(motorLeftFront.isBusy()) {
+            telemetry.addData("LF pos>>>>  ", motorLeftFront.getCurrentPosition());
+            telemetry.addData("RF pos>>>>  ", motorRightFront.getCurrentPosition());
+            telemetry.addData("LB pos>>>>  ", motorLeftBack.getCurrentPosition());
+            telemetry.addData("RB pos>>>>  ", motorRightBack.getCurrentPosition());
+            telemetry.update();
+        }
+
+        motorLeftFront.setPower(0);
+        motorRightFront.setPower(0);
+        motorRightBack.setPower(0);
+        motorLeftBack.setPower(0);
+
+        setModes(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+    }
+
+    void strafe(int ticks, double power) {
+        setModes(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+
+        motorLeftBack.setTargetPosition(ticks);
+        motorRightBack.setTargetPosition(-ticks);
+        motorRightFront.setTargetPosition(ticks);
+        motorLeftFront.setTargetPosition(-ticks);
+
+        motorLeftFront.setPower(power);
+        motorRightFront.setPower(power);
+        motorRightBack.setPower(power);
+        motorLeftBack.setPower(power);
+
+        setModes(DcMotor.RunMode.RUN_TO_POSITION);
+
+        while(motorLeftFront.isBusy()) {
+            telemetry.addData("LF pos>>>>  ", motorLeftFront.getCurrentPosition());
+            telemetry.addData("RF pos>>>>  ", motorRightFront.getCurrentPosition());
+            telemetry.addData("LB pos>>>>  ", motorLeftBack.getCurrentPosition());
+            telemetry.addData("RB pos>>>>  ", motorRightBack.getCurrentPosition());
+            telemetry.update();
+        }
+
+        motorLeftFront.setPower(0);
+        motorRightFront.setPower(0);
+        motorRightBack.setPower(0);
+        motorLeftBack.setPower(0);
+
+        setModes(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+    }
+
+    void setModes(DcMotor.RunMode mode) {
+        motorLeftBack.setMode(mode);
+        motorRightFront.setMode(mode);
+        motorRightBack.setMode(mode);
+        motorLeftFront.setMode(mode);
+    }
+}
